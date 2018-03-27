@@ -15,12 +15,14 @@ def authenticate_with_sheets():
     scope = ['https://spreadsheets.google.com/feeds']
     creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
     client = gspread.authorize(creds)
+    print("Step 1 authorization.")
 
     http = creds.authorize(httplib2.Http())
     discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?'
                     'version=v4')
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
+    print("Step 2 authorization.")
 
     #Get entire Spreadsheet.
     spread_sheet = client.open('CME Dairy Futures History')
@@ -29,12 +31,14 @@ def authenticate_with_sheets():
     #Assign variables to desired sheets within spread_sheet.
     authenticate_with_sheets.organized_sheet = spread_sheet.worksheet('DRY WHEY ORGANIZED')
     authenticate_with_sheets.dry_whey_sheet = spread_sheet.worksheet('DRY WHEY NO APO')
+    print("Assigning sheet variables for later access.")
 
     data_range = 'DRY WHEY NO APO!A4:FG366'
     result = service.spreadsheets().values().get(spreadsheetId=spread_sheet_id, range=data_range).execute()
 
     #Assign desired data to a variable.
     data = result.get('values', [])
+    print("Authorization done.")
 
 #Get the date of a cell given the row, the column, and the sheet desired.
 def get_date(cell_col, cell_row, sheet):
@@ -113,7 +117,7 @@ def align_data():
     failed_cells = []
 
     for i in authenticate_with_sheets.dry_whey_sheet.range('B71:FG366'):
-        x += 1
+        #x += 1
 
         #Get the date and contract of each cell.
         try:
@@ -153,7 +157,7 @@ def align_data():
             save_file.write(str(i) + "\n")
             failed_cells.append(str(i))
         else:
-            print("iteration: " + str(x))
+            #print("iteration: " + str(x))
             print("New Date: " + str(new_date))
             print("New Contract: " + str(get_contract(i.col, i.row, authenticate_with_sheets.dry_whey_sheet)))
 
