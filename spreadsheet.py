@@ -1,8 +1,8 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import pprint
 import httplib2
 import os
+import time
 
 from apiclient import discovery
 from oauth2client import client
@@ -10,35 +10,31 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 #Gaining access to Sheets.
-scope = ['https://spreadsheets.google.com/feeds']
-creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
-client = gspread.authorize(creds)
 
-http = creds.authorize(httplib2.Http())
-discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?'
+def authenticate_with_sheets():
+    scope = ['https://spreadsheets.google.com/feeds']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
+    client = gspread.authorize(creds)
+
+    http = creds.authorize(httplib2.Http())
+    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?'
                     'version=v4')
-service = discovery.build('sheets', 'v4', http=http,
+    service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
-#Make console output look pretty.
-pp = pprint.PrettyPrinter()
+    #Get entire Spreadsheet.
+    spread_sheet = client.open('CME Dairy Futures History')
+    spread_sheet_id = '1SU5H5ozn30lBCz-EzOdQBlDIGKu_7Bxe4ZjUzOUXtPw'
 
-#Get entire Spreadsheet.
-spread_sheet = client.open('CME Dairy Futures History')
-spread_sheet_id = '1SU5H5ozn30lBCz-EzOdQBlDIGKu_7Bxe4ZjUzOUXtPw'
+    #Assign variables to desired sheets within spread_sheet.
+    authenticate_with_sheets.organized_sheet = spread_sheet.worksheet('DRY WHEY ORGANIZED')
+    authenticate_with_sheets.dry_whey_sheet = spread_sheet.worksheet('DRY WHEY NO APO')
 
-#Assign variables to desired sheets within spread_sheet.
-organized_sheet = spread_sheet.worksheet('DRY WHEY ORGANIZED')
-dry_whey_sheet = spread_sheet.worksheet('DRY WHEY NO APO')
+    data_range = 'DRY WHEY NO APO!A4:FG366'
+    result = service.spreadsheets().values().get(spreadsheetId=spread_sheet_id, range=data_range).execute()
 
-data_range = 'DRY WHEY NO APO!A4:FG366'
-result = service.spreadsheets().values().get(spreadsheetId=spread_sheet_id, range=data_range).execute()
-
-#Assign desired data to a variable.
-data = result.get('values', [])
-
-#Print all data.
-#print(data)
+    #Assign desired data to a variable.
+    data = result.get('values', [])
 
 #Get the date of a cell given the row, the column, and the sheet desired.
 def get_date(cell_col, cell_row, sheet):
@@ -108,7 +104,7 @@ def get_contract(cell_col, cell_row, sheet):
     return contract
 
 #Function to align data in the respective organized sheet.
-def align_data(data_sheet):
+def align_data():
 
     save_file = open("failedCells.txt", "w+")
     x = 0
@@ -116,12 +112,12 @@ def align_data(data_sheet):
     #Place to store cells that error out. Rearrange by hand or find the issue.
     failed_cells = []
 
-    for i in data_sheet.range('B59:FG366'):
+    for i in authenticate_with_sheets.dry_whey_sheet.range('B71:FG366'):
         x += 1
 
         #Get the date and contract of each cell.
         try:
-            contract = get_contract(i.col, i.row, data_sheet)
+            contract = get_contract(i.col, i.row, authenticate_with_sheets.dry_whey_sheet)
             #Skip blank cells.
             if not i.value == "" and not contract == "N/A":
                 if contract == "jan":
@@ -148,34 +144,92 @@ def align_data(data_sheet):
                     new_col = 12
                 elif contract == "dec":
                     new_col = 13
-                new_date = get_date(i.col, i.row, data_sheet)
+                new_date = get_date(i.col, i.row, authenticate_with_sheets.dry_whey_sheet)
             else:
                 print("Empty cell skipped: " + str(i.col) + " " + str(i.row) + "\n")
-                continue
 
         except Exception:
             print "Got an error."
             save_file.write(str(i) + "\n")
             failed_cells.append(str(i))
-            continue
         else:
             print("iteration: " + str(x))
             print("New Date: " + str(new_date))
-            print("New Contract: " + str(get_contract(i.col, i.row, data_sheet) + "\n"))
+            print("New Contract: " + str(get_contract(i.col, i.row, authenticate_with_sheets.dry_whey_sheet)))
 
-            corresponding_cell = organized_sheet.find(new_date)
-            new_row = corresponding_cell.row
-
-            print("Column: " + str(new_col) + ", " + "Row: " + str(new_row))
-            print("Value: " + str(i.value))
             try:
-                organized_sheet.update_cell(new_row, new_col, i.value)
+                corresponding_cell = authenticate_with_sheets.organized_sheet.find(new_date)
             except Exception:
-                print("\n\nRecieved 401 error. Gaining new authentication.\n\n")
-                creds.authorize(httplib2.Http())
+                print("\n\nError searching sheet. Gaining new authentication.\n\n")
+                authenticate_with_sheets()
                 save_file.write(str(i) + "\n")
                 failed_cells.append(str(i))
-                continue
+                print("Waiting 2 minutes for authentication.")
+                time.sleep(60)
+                print("1 Minute left.")
+                time.sleep(30)
+                print("30 seconds left.")
+                time.sleep(20)
+                print("10 seconds left.")
+                time.sleep(1)
+                print("9 seconds left.")
+                time.sleep(1)
+                print("8 seconds left.")
+                time.sleep(1)
+                print("7 seconds left.")
+                time.sleep(1)
+                print("6 seconds left.")
+                time.sleep(1)
+                print("5 seconds left.")
+                time.sleep(1)
+                print("4 seconds left.")
+                time.sleep(1)
+                print("3 seconds left.")
+                time.sleep(1)
+                print("2 seconds left.")
+                time.sleep(1)
+                print("1 seconds left.")
+                time.sleep(1)
+                print("Restarting alignment.\n\n")
+            else:
+                new_row = corresponding_cell.row
 
+            print("Column: " + str(new_col) + ", " + "Row: " + str(new_row))
+            print("Value: " + str(i.value) + "\n")
+            try:
+                authenticate_with_sheets.organized_sheet.update_cell(new_row, new_col, i.value)
+            except Exception:
+                print("\n\nError updating cell. Gaining new authentication.\n\n")
+                authenticate_with_sheets()
+                save_file.write(str(i) + "\n")
+                failed_cells.append(str(i))
+                print("Waiting 2 minutes for authentication.")
+                time.sleep(60)
+                print("1 Minute left.")
+                time.sleep(30)
+                print("30 seconds left.")
+                time.sleep(20)
+                print("10 seconds left.")
+                time.sleep(1)
+                print("9 seconds left.")
+                time.sleep(1)
+                print("8 seconds left.")
+                time.sleep(1)
+                print("7 seconds left.")
+                time.sleep(1)
+                print("6 seconds left.")
+                time.sleep(1)
+                print("5 seconds left.")
+                time.sleep(1)
+                print("4 seconds left.")
+                time.sleep(1)
+                print("3 seconds left.")
+                time.sleep(1)
+                print("2 seconds left.")
+                time.sleep(1)
+                print("1 seconds left.")
+                time.sleep(1)
+                print("Restarting alignment.\n\n")
 
-align_data(dry_whey_sheet)
+authenticate_with_sheets()
+align_data()
