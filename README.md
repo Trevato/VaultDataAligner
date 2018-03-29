@@ -2,11 +2,11 @@
 
 Align Vault Dairy data in order to apply AWS Machine Learning.
 
-## Align Data without MultiThreading:
+## Align Data without Multi-Threading:
 
 * Run _spreadsheet.py_ (Python 2.7.+ and Python 3)
 
-## Align Data with MultiThreading (_Much faster_):
+## Align Data with Multi-Threading (_Much faster_):
 
 * Run _runVaultAligner.py_ (Python 3 **only**)
 
